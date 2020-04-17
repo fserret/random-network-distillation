@@ -2,7 +2,7 @@ from collections import defaultdict
 from mpi4py import MPI
 import os, numpy as np
 import platform
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 def sync_from_root(sess, variables, comm=None):
     """

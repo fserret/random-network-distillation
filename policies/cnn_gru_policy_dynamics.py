@@ -1,5 +1,5 @@
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from baselines import logger
 from utils import fc, conv
 from stochastic_policy import StochasticPolicy
@@ -9,7 +9,7 @@ from mpi_util import RunningMeanStd
 
 def to2d(x):
     size = 1
-    for shapel in x.get_shape()[1:]: size *= shapel.value
+    for shapel in x.get_shape()[1:]: size *= shapel
     return tf.reshape(x, (-1, size))
 
 

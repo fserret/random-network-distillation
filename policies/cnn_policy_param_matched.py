@@ -1,5 +1,5 @@
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from baselines import logger
 from utils import fc, conv, ortho_init
 from stochastic_policy import StochasticPolicy

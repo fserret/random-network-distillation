@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from baselines.common.distributions import make_pdtype
 from collections import OrderedDict
 from gym import spaces

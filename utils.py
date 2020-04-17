@@ -1,12 +1,12 @@
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import random
 from mpi_util import mpi_moments
 
 
 def fc(x, scope, nh, *, init_scale=1.0, init_bias=0.0):
     with tf.variable_scope(scope):
-        nin = x.get_shape()[1].value
+        nin = x.get_shape()[1]
         w = tf.get_variable("w", [nin, nh], initializer=ortho_init(init_scale))
         b = tf.get_variable("b", [nh], initializer=tf.constant_initializer(init_bias))
         return tf.matmul(x, w)+b
@@ -23,7 +23,7 @@ def conv(x, scope, *, nf, rf, stride, pad='VALID', init_scale=1.0, data_format='
     else:
         raise NotImplementedError
     bias_var_shape = [nf] if one_dim_bias else [1, nf, 1, 1]
-    nin = x.get_shape()[channel_ax].value
+    nin = x.get_shape()[channel_ax]
     wshape = [rf, rf, nin, nf]
     with tf.variable_scope(scope):
         w = tf.get_variable("w", wshape, initializer=ortho_init(init_scale))
@@ -73,7 +73,7 @@ def tile_images(array, n_cols=None, max_images=None, div=1):
 
 def set_global_seeds(i):
     try:
-        import tensorflow as tf
+        import tensorflow.compat.v1 as tf
     except ImportError:
         pass
     else:
