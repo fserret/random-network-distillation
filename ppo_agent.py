@@ -335,6 +335,7 @@ class PpoAgent(object):
                      }
         if self.I.venvs[0].record_obs:
             to_record['obs'] = self.I.buf_obs[None]
+
         self.recorder.record(bufs=to_record,
                              infos=self.I.buf_epinfos)
 
@@ -536,6 +537,7 @@ class PpoAgent(object):
                 self.I.stats['tcount'] += epinfo['l']
                 self.I.stats['rewtotal'] += epinfo['r']
                 # self.I.stats["best_ext_ret"] = self.best_ret
+
 
 
         return {'update' : update_info}

@@ -12,7 +12,7 @@ from policies.cnn_policy_param_matched import CnnPolicy
 from ppo_agent import PpoAgent
 from utils import set_global_seeds
 from vec_env import VecFrameStack
-
+import pickle
 
 def train(*, env_id, num_env, hps, num_timesteps, seed):
     venv = VecFrameStack(
@@ -72,6 +72,7 @@ def train(*, env_id, num_env, hps, num_timesteps, seed):
     counter = 0
     while True:
         info = agent.step()
+        
         if info['update']:
             logger.logkvs(info['update'])
             logger.dumpkvs()
@@ -80,6 +81,7 @@ def train(*, env_id, num_env, hps, num_timesteps, seed):
             break
 
     agent.stop_interaction()
+    tf_util.save_state("saved_states/save1")
 
 
 def add_env_params(parser):
@@ -91,7 +93,7 @@ def add_env_params(parser):
 def main():
     parser = arg_parser()
     add_env_params(parser)
-    parser.add_argument('--num-timesteps', type=int, default=int(1e12))
+    parser.add_argument('--num-timesteps', type=int, default=int(1e8))
     parser.add_argument('--num_env', type=int, default=32)
     parser.add_argument('--use_news', type=int, default=0)
     parser.add_argument('--gamma', type=float, default=0.99)
@@ -106,7 +108,7 @@ def main():
     parser.add_argument('--int_coeff', type=float, default=1.)
     parser.add_argument('--ext_coeff', type=float, default=2.)
     parser.add_argument('--dynamics_bonus', type=int, default=0)
-
+    parser.add_argument('--save_replay', type=bool, default=True)
 
     args = parser.parse_args()
     logger.configure(dir=logger.get_dir(), format_strs=['stdout', 'log', 'csv'] if MPI.COMM_WORLD.Get_rank() == 0 else [])
@@ -144,6 +146,7 @@ def main():
     tf_util.make_session(make_default=True)
     train(env_id=args.env, num_env=args.num_env, seed=seed,
         num_timesteps=args.num_timesteps, hps=hps)
+
 
 
 if __name__ == '__main__':
