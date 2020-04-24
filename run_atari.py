@@ -81,7 +81,7 @@ def train(*, env_id, num_env, hps, num_timesteps, seed):
             break
 
     agent.stop_interaction()
-    tf_util.save_state("saved_states/save1")
+    tf_util.save_state("saved_states/save2")
 
 
 def add_env_params(parser):
