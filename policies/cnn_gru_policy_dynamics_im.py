@@ -199,15 +199,14 @@ class CnnGruPolicy(StochasticPolicy):
 
         self.feat_var = tf.reduce_mean(tf.nn.moments(X_r, axes=[0])[1])
         self.max_feat = tf.reduce_max(tf.abs(X_r))
-        #self.int_rew = tf.reduce_mean(tf.square(tf.stop_gradient(X_r) - X_r_hat), axis=-1, keep_dims=True)
-        #self.int_rew = tf.reshape(self.int_rew, (self.sy_nenvs, self.sy_nsteps - 1)) 
+        self.int_rew = tf.reduce_mean(tf.square(tf.stop_gradient(X_r) - X_r_hat), axis=-1, keep_dims=True)
+        self.int_rew = tf.reshape(self.int_rew, (self.sy_nenvs, self.sy_nsteps - 1)) 
         ####
         #self.im_rew =  tf.math.maximum(1 - tf.divide(tf.reduce_mean(tf.square(self.Xr_im[:(X_r).shape[0]] - X_r), axis=-1, keep_dims=True),tf.add(tf.reduce_mean(tf.square(self.Xr_im[:X_r.shape[0]]), axis=-1, keep_dims=True),tf.reduce_mean(tf.square(X_r), axis=-1, keep_dims=True))),tf.constant(0.5))
         self.im_rew =  tf.reduce_mean(tf.tensordot(tf.stop_gradient(X_r), self.Xr_im,axes=[[1],[1]]),axis=1)
-        print(self.im_rew.shape)
         self.im_rew = tf.reshape(self.im_rew, (self.sy_nenvs, self.sy_nsteps - 1))
         #self.int_rew =tf.math.maximum(self.im_rew,self.int_rew)
-        self.int_rew =self.im_rew
+        self.int_rew =self.int_rew * (1+tf.math.tanh(self.im_rew/100))
         ####
 
         noisy_targets = tf.stop_gradient(X_r)

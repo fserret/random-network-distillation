@@ -132,6 +132,7 @@ def load_test(*, env_id, num_env, hps, num_timesteps, seed,fname):
         update_ob_stats_every_step=hps.pop('update_ob_stats_every_step'),
         int_coeff=hps.pop('int_coeff'),
         ext_coeff=hps.pop('ext_coeff'),
+        obs_save_flag=True
     )
 
     tf_util.load_state("saved_states/save1")
@@ -139,12 +140,9 @@ def load_test(*, env_id, num_env, hps, num_timesteps, seed,fname):
     counter = 0
     while True:
         info = agent.step()
-        
-        if info['update']:
-            logger.logkvs(info['update'])
-            logger.dumpkvs()
-            counter += 1
-        if agent.I.stats['tcount'] > num_timesteps:
+        if agent.I.stats['epcount'] > 1:
+            with open("obs_acs.pickle",'wb') as f1:
+                pickle.dump(agent.obs_rec,f1)
             break
 
 

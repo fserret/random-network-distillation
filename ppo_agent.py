@@ -25,6 +25,7 @@ class InteractionState(object):
     Parts of the PPOAgent's state that are based on interaction with a single batch of envs
     """
     def __init__(self, ob_space, ac_space, nsteps, gamma, venvs, stochpol, comm):
+        
         self.lump_stride = venvs[0].num_envs
         self.venvs = venvs
         assert all(venv.num_envs == self.lump_stride for venv in self.venvs[1:]), 'All venvs should have the same num_envs'
@@ -109,6 +110,7 @@ class PpoAgent(object):
                  update_ob_stats_every_step=True,
                  int_coeff=None,
                  ext_coeff=None,
+                 obs_save_flag=False,
                  ):
         self.lr = lr
         self.ext_coeff = ext_coeff
@@ -127,6 +129,10 @@ class PpoAgent(object):
             self.comm_train, self.comm_train_size = self.comm_log, self.comm_log.Get_size()
         self.is_log_leader = self.comm_log.Get_rank()==0
         self.is_train_leader = self.comm_train.Get_rank()==0
+        self.obs_save_flag=obs_save_flag
+        if self.is_log_leader:
+            self.obs_rec=[{'acs':[],'obs':[]} for i in range(100)]
+
         with tf.variable_scope(scope):
             self.best_ret = -np.inf
             self.local_best_ret = - np.inf
@@ -434,6 +440,11 @@ class PpoAgent(object):
         epinfos = []
         for l in range(self.I.nlump):
             obs, prevrews, news, infos = self.env_get(l)
+            if self.is_log_leader:
+                if self.obs_save_flag:
+                    while self.I.stats['epcount']+1>len(self.obs_rec):
+                        self.obs_rec.append({'obs':[],'acs':[]})
+                    self.obs_rec[self.I.stats['epcount']]['obs'].append(obs)
             for env_pos_in_lump, info in enumerate(infos):
                 if 'episode' in info:
                     #Information like rooms visited is added to info on end of episode.
@@ -448,10 +459,18 @@ class PpoAgent(object):
             sli = slice(l * self.I.lump_stride, (l + 1) * self.I.lump_stride)
             memsli = slice(None) if self.I.mem_state is NO_STATES else sli
             dict_obs = self.stochpol.ensure_observation_is_dict(obs)
+
             with logger.profile_kv("policy_inference"):
                 #Calls the policy and value function on current observation.
                 acs, vpreds_int, vpreds_ext, nlps, self.I.mem_state[memsli], ent = self.stochpol.call(dict_obs, news, self.I.mem_state[memsli],
                                                                                                                update_obs_stats=self.update_ob_stats_every_step)
+            if self.is_log_leader:
+
+                if self.obs_save_flag:
+
+                    while self.I.stats['epcount']+1>len(self.obs_rec):
+                        self.obs_rec.append({'obs':[],'acs':[]})
+                    self.obs_rec[self.I.stats['epcount']]['acs'].append(acs)
             self.env_step(l, acs)
 
             #Update buffer with transition.
