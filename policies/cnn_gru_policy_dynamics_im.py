@@ -47,6 +47,7 @@ class CnnGruPolicy(StochasticPolicy):
                  update_ob_stats_independently_per_gpu=True,
                  proportion_of_exp_used_for_predictor_update=1.,
                  dynamics_bonus = False,
+                 demonstration_stride=16
                  ):
         StochasticPolicy.__init__(self, scope, ob_space, ac_space)
         self.proportion_of_exp_used_for_predictor_update = proportion_of_exp_used_for_predictor_update
@@ -56,6 +57,7 @@ class CnnGruPolicy(StochasticPolicy):
             'large': 4
         }[policy_size]
         rep_size = 512
+        self.demonstration_stride=demonstration_stride
         self.ph_mean = tf.placeholder(dtype=tf.float32, shape=list(ob_space.shape[:2])+[1], name="obmean")
         self.ph_std = tf.placeholder(dtype=tf.float32, shape=list(ob_space.shape[:2])+[1], name="obstd")
         memsize *= enlargement
@@ -175,9 +177,9 @@ class CnnGruPolicy(StochasticPolicy):
             Xr_im = tf.nn.leaky_relu(conv(Xr_im, 'c1r', nf=convfeat * 1, rf=8, stride=4, init_scale=np.sqrt(2)))
             Xr_im = tf.nn.leaky_relu(conv(Xr_im, 'c2r', nf=convfeat * 2 * 1, rf=4, stride=2, init_scale=np.sqrt(2)))
             Xr_im = tf.nn.leaky_relu(conv(Xr_im, 'c3r', nf=convfeat * 2 * 1, rf=3, stride=1, init_scale=np.sqrt(2)))
-            Xr_im = [to2d(Xr_im)]
+            Xr_im = [to2d(Xr_im)[::self.demonstration_stride]]
             Xr_im = fc(Xr_im[0], 'fc1r', nh=rep_size, init_scale=np.sqrt(2))
-            self.Xr_im = tf.stop_gradient(Xr_im)
+            Xr_im = tf.stop_gradient(Xr_im)
 
 
         # Predictor network.
@@ -203,10 +205,10 @@ class CnnGruPolicy(StochasticPolicy):
         self.int_rew = tf.reshape(self.int_rew, (self.sy_nenvs, self.sy_nsteps - 1)) 
         ####
         #self.im_rew =  tf.math.maximum(1 - tf.divide(tf.reduce_mean(tf.square(self.Xr_im[:(X_r).shape[0]] - X_r), axis=-1, keep_dims=True),tf.add(tf.reduce_mean(tf.square(self.Xr_im[:X_r.shape[0]]), axis=-1, keep_dims=True),tf.reduce_mean(tf.square(X_r), axis=-1, keep_dims=True))),tf.constant(0.5))
-        self.im_rew =  tf.reduce_mean(tf.tensordot(tf.stop_gradient(X_r), self.Xr_im,axes=[[1],[1]]),axis=1)
-        self.im_rew = tf.reshape(self.im_rew, (self.sy_nenvs, self.sy_nsteps - 1))
+        im_rew =  tf.reduce_mean(tf.tensordot(tf.stop_gradient(X_r), Xr_im,axes=[[1],[1]]),axis=1)
+        im_rew = tf.reshape(im_rew, (self.sy_nenvs, self.sy_nsteps - 1))
         #self.int_rew =tf.math.maximum(self.im_rew,self.int_rew)
-        self.int_rew =self.int_rew * (1+tf.math.tanh(self.im_rew/100))
+        self.int_rew =self.int_rew * (1+tf.math.tanh(im_rew/100))
         ####
 
         noisy_targets = tf.stop_gradient(X_r)
