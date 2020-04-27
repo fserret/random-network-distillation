@@ -111,7 +111,7 @@ def main():
     parser.add_argument('--save_replay', type=bool, default=True)
 
     args = parser.parse_args()
-    logger.configure(dir=logger.get_dir(), format_strs=['stdout', 'log', 'csv'] if MPI.COMM_WORLD.Get_rank() == 0 else [])
+    logger.configure(dir=os.getcwd()+logger.get_dir(), format_strs=['stdout', 'log', 'csv'] if MPI.COMM_WORLD.Get_rank() == 0 else [])
     if MPI.COMM_WORLD.Get_rank() == 0:
         with open(os.path.join(logger.get_dir(), 'experiment_tag.txt'), 'w') as f:
             f.write(args.tag)
